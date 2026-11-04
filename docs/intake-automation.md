@@ -307,6 +307,12 @@ cancelled they are read-only again, except to whoever uploaded them. A new
 version of a document MikeGC recorded stays under the organization's
 `intake-<organization ID>` folder.
 
+Queued preprocessing skips resolved or
+cancelled requests. If the request changes while a model is working, its stale
+results are discarded. Automatic document edits and closure serialize in the
+database: an edit commits completely before closure, or a closure that commits
+first prevents the edit. Reopening does not authorize results from before closure.
+
 ### Processing a request in the Assistant
 
 **Process in Assistant**, in the request page's header, opens a new Assistant
