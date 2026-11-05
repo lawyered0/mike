@@ -71,7 +71,7 @@ import {
   isIntakeOverdue,
 } from "./intakeLabels";
 import { IntakeUnassigned } from "./IntakeUnassigned";
-import { onIntakeNotified } from "./intakeNotifications";
+import { onIntakeNotified } from "./intakeNotificationEvents";
 
 const TABS: { id: IntakeTab; label: string }[] = [
   { id: "outstanding", label: "Outstanding" },
