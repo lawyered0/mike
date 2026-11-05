@@ -588,6 +588,7 @@ export function Detail({
     executeDetails(input);
   }
   const handoffStale = !!handoff && (!request ||
+    !request.capabilities.edit ||
     request.version !== handoff.input.expected_version ||
     request.clarify_stage !== handoff.stage);
   function confirmHandoff() {
@@ -775,7 +776,9 @@ export function Detail({
     command("assignment", "assign the request", { assignee_id: assigneeId });
   // An unresolved save stays retryable even while the request is hidden. The
   // cancel dialog offers its own Check again, but only while the request shows.
-  const handoffVisible = !!handoff && !!request?.capabilities.edit;
+  // A read-only request still needs a way to cancel an unsent approval.
+  // Loss of read access hides the dialog, while unresolved writes retain recovery.
+  const handoffVisible = !!handoff && !!request;
   const cancelRechecks =
     handoffVisible ||
     (closing === "cancel" || (closing === "resolve" && !!conversation)) &&

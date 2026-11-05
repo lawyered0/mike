@@ -3625,6 +3625,26 @@ describe("detail edit automation handoff", () => {
     expect(within(dialog()).getByRole("alert")).toHaveTextContent("The request changed");
     fireEvent.click(saveButton()); expect(mocks.edit).not.toHaveBeenCalled();
   });
+  it.each(["closes", "becomes read-only"] as const)(
+    "keeps stale approval dismissible when the request %s before confirmation", async (change) => {
+    render(detail()); await editDate();
+    mocks.request.mockResolvedValue(waiting({
+      ...(change === "closes" ? { version: 2, state: "cancelled", clarify_stage: null } as const : {}),
+      capabilities: { ...capabilities, edit: false, cancel: false, reopen: true },
+    }));
+    act(() => window.dispatchEvent(new CustomEvent(INTAKE_NOTIFIED_EVENT, {
+      detail: { requests: [{ workspace: "org-a", request_id: "request-a" }] },
+    })));
+    await waitFor(() => expect(mocks.request).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(saveButton()).toBeDisabled());
+    const cancel = within(dialog()).getByRole("button", { name: "Cancel edit" });
+    expect(cancel).toBeEnabled();
+    fireEvent.click(cancel);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(mocks.edit).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Process this request in a new Assistant chat" }));
+    expect(mocks.push).toHaveBeenCalled();
+  });
   it("reconciles the exact approved command after a lost response despite a newer refresh", async () => {
     mocks.edit.mockRejectedValueOnce({ status: 503 }).mockRejectedValueOnce({ status: 503 })
       .mockResolvedValueOnce({ ...receipt, replayed: true });
