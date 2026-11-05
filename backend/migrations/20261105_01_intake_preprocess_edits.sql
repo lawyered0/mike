@@ -1,4 +1,4 @@
--- Migration date: 2026-11-04
+-- Migration date: 2026-11-05
 -- Resolve/cancel and automatic document edits share the organization/request
 -- locks. A close that commits first prevents the entire edit transaction; an
 -- edit that wins is fully visible before a later close can capture documents.
