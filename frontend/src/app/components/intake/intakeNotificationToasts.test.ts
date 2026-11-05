@@ -7,7 +7,7 @@ import {
   intakeNotificationLine,
   onIntakeNotified,
   planIntakeNotificationToasts,
-} from "./intakeNotificationEvents";
+} from "./intakeNotificationToasts";
 
 const notification = (
   extra: Partial<IntakeNotification> = {},

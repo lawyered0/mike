@@ -86,6 +86,7 @@ import {
   NOTE_TITLE_ICON_CLASS,
 } from "./IntakeNoteForm";
 import { IntakeReasonModal } from "./IntakeReasonModal";
+import { IntakeMarkdown } from "./IntakeMarkdown";
 import {
   IntakeResolveDialog,
   defaultIntakeReplyDocuments,
@@ -113,7 +114,7 @@ import {
 import { formatIntakeDateTime, intakeDeleteMessage } from "./intakeLabels";
 import { describeIntakeEvent, describeIntakeMessage } from "./intakeActivity";
 import { INTAKE_REQUESTS_PATH } from "./intakeQuery";
-import { onIntakeNotified } from "./intakeNotificationEvents";
+import { onIntakeNotified } from "./intakeNotificationToasts";
 import {
   IntakeDocumentPicker,
   type IntakePickedDocument,
@@ -806,7 +807,7 @@ export function Detail({
                 [
                   {
                     title: "Process this request in a new Assistant chat",
-                    label: "Process in Assistant",
+                    label: "Assistant",
                     icon: (
                       <MessageSquare aria-hidden="true" className="h-4 w-4" />
                     ),
@@ -1134,9 +1135,15 @@ export function Detail({
                             const text = entry.message;
                             return (
                               <>
-                                <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
-                                  {text.body}
-                                </p>
+                                {/* MikeGC writes its report in Markdown;
+                                    people's notes read as typed. */}
+                                {text.purpose === "preprocessing" ? (
+                                  <IntakeMarkdown text={text.body} />
+                                ) : (
+                                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
+                                    {text.body}
+                                  </p>
+                                )}
                                 <IntakeNoteDocuments
                                   documents={documents.filter(
                                     (d) => d.message_id === text.id,
@@ -1408,7 +1415,7 @@ function DetailSkeleton({ children }: { children?: ReactNode }) {
           </div>
           <div className="space-y-2 border-t border-gray-100 px-5 py-4">
             <SkeletonLine className="w-20" />
-            <SkeletonLine className="h-[5.25rem] w-full rounded-xl" />
+            <SkeletonLine className="h-[6.75rem] w-full rounded-xl" />
           </div>
         </GlassCardUI>
         <IntakeMessagesSkeleton />
