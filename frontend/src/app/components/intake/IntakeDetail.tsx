@@ -813,8 +813,11 @@ export function Detail({
                     ),
                     // A new chat, with the request's pill and a suggested
                     // prompt in its composer; the user sends it.
-                    onClick: () =>
-                      router.push(assistantPathWithIntake(requestId, orgId)),
+                    onClick: () => {
+                      // A field's blur may open the handoff before this click.
+                      if (memory.values.get("detailHandoff")) return;
+                      router.push(assistantPathWithIntake(requestId, orgId));
+                    },
                   },
                 ],
                 [

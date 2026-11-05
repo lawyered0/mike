@@ -20,6 +20,7 @@ import type {
 import { IntakeInbox, Inbox } from "./IntakeInbox";
 import { IntakeDetail, Detail } from "./IntakeDetail";
 import { IntakeNewRequestPage } from "./IntakeNewRequest";
+import { INTAKE_NOTIFIED_EVENT } from "./intakeNotificationToasts";
 import { setIntakeMemoryAccount } from "@/app/lib/intakeMemory";
 
 const mocks = vi.hoisted(() => ({
@@ -3508,6 +3509,53 @@ describe("detail edit automation handoff", () => {
   }
   beforeEach(() => { mocks.request.mockResolvedValue(waiting()); });
 
+  it("keeps the pending handoff when an active field blurs into the Assistant header", async () => {
+    const user = userEvent.setup(); render(detail());
+    const date = await screen.findByLabelText("Target date");
+    await user.click(date);
+    fireEvent.change(date, { target: { value: "Nov 10, 2026" } });
+    await user.click(screen.getByRole("button", { name: "Process this request in a new Assistant chat" }));
+    expect(dialog()).toBeInTheDocument();
+    expect(mocks.push).not.toHaveBeenCalled();
+    expect(mocks.edit).not.toHaveBeenCalled();
+    expect(mocks.replySeen).not.toHaveBeenCalled();
+  });
+  it("invalidates pending approval when a status notification refreshes the request", async () => {
+    render(detail()); await editDate();
+    mocks.request.mockResolvedValue(waiting({ version: 2, state: "in_review", clarify_stage: null }));
+    act(() => window.dispatchEvent(new CustomEvent(INTAKE_NOTIFIED_EVENT, {
+      detail: { requests: [{ workspace: "org-a", request_id: "request-a" }] },
+    })));
+    await waitFor(() => expect(saveButton()).toBeDisabled());
+    expect(within(dialog()).getByRole("alert")).toHaveTextContent("The request changed");
+    fireEvent.click(saveButton());
+    expect(mocks.edit).not.toHaveBeenCalled();
+    expect(mocks.replySeen).not.toHaveBeenCalled();
+  });
+  it("refreshes the inbox through the same notification helper", async () => {
+    mocks.list.mockResolvedValue(page([summary()]));
+    render(<Inbox orgId="org-a" accountId="account-a" />);
+    await screen.findByRole("link", { name: "Confidential request A" });
+    mocks.list.mockResolvedValue(page([summary({ subject: "Updated from Assistant", version: 2 })]));
+    act(() => window.dispatchEvent(new CustomEvent(INTAKE_NOTIFIED_EVENT, {
+      detail: { requests: [{ workspace: "org-a", request_id: "request-a" }] },
+    })));
+    expect(await screen.findByRole("link", { name: "Updated from Assistant" })).toBeInTheDocument();
+    expect(mocks.replySeen).not.toHaveBeenCalled();
+  });
+  it("leaves a new reply unread after saving details and navigating to Assistant", async () => {
+    mocks.request.mockResolvedValue(waiting({ conversation: { source: "gmail", channel_name: null, team_name: null, permalink: null, mailbox: "intake@example.test", to: ["jane@business.test"], cc: [], documents: true, max_attachment_bytes: 25000000 } }));
+    mocks.edit.mockResolvedValue(receipt);
+    render(detail()); await editDate();
+    mocks.request.mockResolvedValue(waiting({ version: 2, clarify_stage: null, state: "in_review", requested_by_date: "2026-11-10", conversation: { source: "gmail", channel_name: null, team_name: null, permalink: null, mailbox: "intake@example.test", to: ["jane@business.test"], cc: [], documents: true, max_attachment_bytes: 25000000 } }));
+    fireEvent.click(saveButton());
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Process this request in a new Assistant chat" }));
+    expect(mocks.push).toHaveBeenCalled();
+    expect(mocks.replySeen).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: /^Messages/ }));
+    await waitFor(() => expect(mocks.replySeen).toHaveBeenCalledWith("org-a", "request-a", "2026-11-04T12:00:00Z"));
+  });
   it("requires approval once for Enter plus blur, without marking a reply read", async () => {
     render(detail()); await editDate();
     expect(dialog()).toHaveTextContent("Target date");
