@@ -8,12 +8,16 @@ describe('Intake handoff decision',()=>{
   render(<IntakeHandoffDialog changes={[]} stage="rule" onConfirm={vi.fn()} onCancel={vi.fn()}/>);
   expect(screen.getByRole('button',{name:'Save and stop follow-up'})).toBeDisabled();
  });
- it('keeps recovery available without telling a locked save to go back',()=>{
-  render(<IntakeHandoffDialog changes={[change]} stage="rule" stale locked uncertain onCheckAgain={vi.fn()} onConfirm={vi.fn()} onCancel={vi.fn()}/>);
+ it('keeps recovery available without telling a locked save to go back',async()=>{
+  const check=vi.fn(),confirm=vi.fn(),cancel=vi.fn();
+  render(<IntakeHandoffDialog changes={[change]} stage="rule" stale locked uncertain onCheckAgain={check} onConfirm={confirm} onCancel={cancel}/>);
   expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   expect(screen.getByRole('status')).toHaveTextContent('The save could not be confirmed');
   expect(screen.getByRole('button',{name:'Check again'})).toBeEnabled();
   expect(screen.getByRole('button',{name:'Cancel edit'})).toBeDisabled();
+  await userEvent.click(screen.getByRole('button',{name:'Check again'}));
+  expect(check).toHaveBeenCalledOnce();
+  expect(confirm).not.toHaveBeenCalled();expect(cancel).not.toHaveBeenCalled();
  });
  it('explains the consequence and requires a deliberate save',async()=>{
   const confirm=vi.fn(),cancel=vi.fn();const user=userEvent.setup();

@@ -3,6 +3,7 @@
 import type { IntakeClarifyStage } from "@mike/contracts";
 import { Modal } from "@/app/components/modals/Modal";
 import { Loader2 } from "lucide-react";
+import { PillButtonUI } from "@/shared/ui/PillButtonUI";
 
 /** Approval of a frozen detail edit that ends automatic clarification. */
 export function IntakeHandoffDialog({
@@ -40,14 +41,6 @@ export function IntakeHandoffDialog({
         onClick: onConfirm,
         icon: busy ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : undefined,
       }}
-      secondaryAction={uncertain && onCheckAgain
-        ? { label: "Check again", onClick: onCheckAgain, disabled: busy }
-        : undefined}
-      footerStatus={busy || uncertain ? (
-        <span role="status">
-          {busy ? "Saving changes…" : "The save could not be confirmed. Your changes are kept."}
-        </span>
-      ) : undefined}
       cancelAction={{ label: "Cancel edit", onClick: onCancel, disabled: locked }}
     >
       <div className="space-y-4 pb-4 text-sm leading-relaxed text-gray-700">
@@ -69,6 +62,20 @@ export function IntakeHandoffDialog({
             ))}
           </dl>
         </div>
+        {(busy || uncertain) && (
+          <div className="space-y-2">
+            <p role="status">
+              {busy
+                ? "Saving changes…"
+                : "The save could not be confirmed. Your changes are kept."}
+            </p>
+            {uncertain && onCheckAgain && (
+              <PillButtonUI tone="white" size="sm" disabled={busy} onClick={onCheckAgain}>
+                Check again
+              </PillButtonUI>
+            )}
+          </div>
+        )}
         {stale && !locked && (
           <p role="alert" className="text-red-600">
             The request changed. Go back and review it before saving.
