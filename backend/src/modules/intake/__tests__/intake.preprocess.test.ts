@@ -390,7 +390,7 @@ describe("checking what preprocessing needs first", () => {
     expect(memory.rows("intake_messages")).toEqual([
       expect.objectContaining({
         kind: "question",
-        body: "Before Legal starts, MikeGC needs:\n1. Which entity is signing for us?",
+        body: "One thing Legal will need before they start:\nWhich entity is signing for us?",
       }),
     ]);
     expect(memory.rows("intake_outbound")).toEqual([expect.objectContaining({ kind: "acknowledgement" })]);
@@ -490,6 +490,21 @@ describe("closed and superseded preprocessing", () => {
         version: state === "reopened" ? 3 : 2,
       });
       return JSON.stringify({ answer: "Shorten term", edits: [{ document: 1, find: "five years", replace: "two years" }] });
+    });
+    expect(await handleIntakePreprocess(memory.db, job({ kind: "workflow", id: "wf-1" })))
+      .toMatchObject({ skipped: "superseded" });
+    expect(mocks.completeText).toHaveBeenCalledTimes(1);
+    expect(mocks.applyOrgTrackedEdits).not.toHaveBeenCalled();
+    expect(memory.rows("intake_messages")).toHaveLength(0);
+  });
+
+  it("discards output if the intake agent changes request details during model work", async () => {
+    mocks.completeText.mockImplementation(async () => {
+      Object.assign(memory.rows("intake_requests")[0]!, {
+        description: "The requester supplied a different deadline.",
+        version: 2,
+      });
+      return JSON.stringify({ answer: "Old request summary", edits: [{ document: 1, find: "five years", replace: "two years" }] });
     });
     expect(await handleIntakePreprocess(memory.db, job({ kind: "workflow", id: "wf-1" })))
       .toMatchObject({ skipped: "superseded" });
